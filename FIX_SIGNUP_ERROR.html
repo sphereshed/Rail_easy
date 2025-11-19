@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Signup Error - Quick Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px;
+        }
+        .error-box {
+            background: #fee;
+            border-left: 4px solid #f44;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+        .error-box code {
+            background: #fdd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .steps {
+            margin: 30px 0;
+        }
+        .step {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .step h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .substep {
+            margin: 10px 0 10px 40px;
+            padding-left: 20px;
+            border-left: 2px solid #ddd;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .btn {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        ul {
+            margin-left: 20px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .highlight {
+            background: #ffeb3b;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Fix Signup Error</h1>
+            <p>Quick Guide to Resolve Database Issues</p>
+        </div>
+        
+        <div class="content">
+            <div class="error-box">
+                <h3>❌ Error You're Seeing:</h3>
+                <p><code>Supabase signup error: AuthApiError: Database error saving new user</code></p>
+            </div>
+
+            <h2>🎯 Solution: Apply SQL Fix to Your Database</h2>
+            
+            <div class="steps">
+                <div class="step">
+                    <h3><span class="step-number">1</span> Open Supabase Dashboard</h3>
+                    <p>Go to your Supabase project dashboard:</p>
+                    <div style="text-align: center; margin: 15px 0;">
+                        <a href="https://app.supabase.com/project/tojbjsjpgkessgmgcuqw" class="btn" target="_blank">
+                            Open Supabase Dashboard →
+                        </a>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h3><span class="step-number">2</span> Open SQL Editor</h3>
+                    <div class="substep">
+                        <p>1. In the left sidebar, click <strong>"SQL Editor"</strong></p>
+                        <p>2. Click the <strong>"New Query"</strong> button</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h3><span class="step-number">3</span> Copy the SQL Fix</h3>
+                    <div class="substep">
+                        <p>1. In VS Code, open: <code>supabase/SIMPLE_FIX.sql</code></p>
+                        <p>2. Press <kbd>Ctrl</kbd> + <kbd>A</kbd> to select all</p>
+                        <p>3. Press <kbd>Ctrl</kbd> + <kbd>C</kbd> to copy</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h3><span class="step-number">4</span> Run the Fix</h3>
+                    <div class="substep">
+                        <p>1. Go back to Supabase SQL Editor</p>
+                        <p>2. Press <kbd>Ctrl</kbd> + <kbd>V</kbd> to paste the SQL</p>
+                        <p>3. Click <strong>"Run"</strong> or press <kbd>Ctrl</kbd> + <kbd>Enter</kbd></p>
+                    </div>
+                    <div class="success-box" style="margin-top: 15px;">
+                        <strong>✅ Success looks like:</strong>
+                        <p>"Success. No rows returned" message appears</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h3><span class="step-number">5</span> Verify Tables Created</h3>
+                    <div class="substep">
+                        <p>1. Click <strong>"Table Editor"</strong> in the left sidebar</p>
+                        <p>2. You should now see these tables:</p>
+                        <ul>
+                            <li>✓ <strong>profiles</strong> table</li>
+                            <li>✓ <strong>drivers</strong> table</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <h3><span class="step-number">6</span> Test Signup</h3>
+                    <div class="substep">
+                        <p>1. Go back to your app: <code>http://localhost:5173/auth</code></p>
+                        <p>2. Try signing up with:</p>
+                        <ul>
+                            <li><strong>Full Name:</strong> Test User</li>
+                            <li><strong>Email:</strong> test@example.com</li>
+                            <li><strong>Password:</strong> password123</li>
+                        </ul>
+                        <p>3. Check your email for verification link</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <h3>⚠️ If You Still Get "Email Already Exists" Error</h3>
+                <p>The user was created but the profile failed. Fix:</p>
+                <ol>
+                    <li>Go to Supabase Dashboard → <strong>Authentication</strong> → <strong>Users</strong></li>
+                    <li>Find and delete the test user</li>
+                    <li>Run the SQL fix again (steps 2-4 above)</li>
+                    <li>Try signing up again</li>
+                </ol>
+            </div>
+
+            <div class="success-box">
+                <h3>🎉 After Fix is Applied</h3>
+                <p>You should be able to:</p>
+                <ul>
+                    <li>✅ Sign up new users</li>
+                    <li>✅ Sign up as a driver (with checkbox)</li>
+                    <li>✅ Log in with existing accounts</li>
+                    <li>✅ Reset passwords</li>
+                    <li>✅ Access driver dashboard</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                <h3>Need More Help?</h3>
+                <p style="margin: 15px 0;">Check these resources:</p>
+                <a href="file:///d:/hackathon/rail-easy-seats-main_01/rail-easy-seats-main/FIX_SIGNUP_ERROR.md" class="btn btn-secondary">
+                    Detailed Guide (MD)
+                </a>
+                <a href="file:///d:/hackathon/rail-easy-seats-main_01/rail-easy-seats-main/SIGNUP_LOGIN_FIX_GUIDE.txt" class="btn btn-secondary">
+                    Troubleshooting (TXT)
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

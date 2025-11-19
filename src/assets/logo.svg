@@ -1,0 +1,40 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="40" height="40" rx="8" fill="#1B4F54"/>
+  
+  <!-- Train body -->
+  <g transform="translate(20, 20)">
+    <!-- Roof -->
+    <path d="M -8 -8 Q -8 -10 -6 -10 L 6 -10 Q 8 -10 8 -8" fill="white" stroke="white" stroke-width="1"/>
+    
+    <!-- Pantograph -->
+    <rect x="-1" y="-12" width="2" height="3" fill="white" rx="1"/>
+    <circle cx="0" cy="-11" r="1.5" fill="white"/>
+    
+    <!-- Main cabin -->
+    <rect x="-8" y="-8" width="16" height="12" fill="white" stroke="white" stroke-width="0.5" rx="1"/>
+    
+    <!-- Windows -->
+    <rect x="-6" y="-6" width="4" height="4" fill="#1B4F54" rx="0.5"/>
+    <rect x="2" y="-6" width="4" height="4" fill="#1B4F54" rx="0.5"/>
+    
+    <!-- Front grill -->
+    <rect x="-5" y="3" width="3" height="2" fill="#1B4F54" rx="0.3"/>
+    <rect x="2" y="3" width="3" height="2" fill="#1B4F54" rx="0.3"/>
+    
+    <!-- Bumper -->
+    <rect x="-8" y="5" width="16" height="1" fill="#1B4F54" rx="0.5"/>
+    
+    <!-- Left wheel -->
+    <circle cx="-5" cy="8" r="2.5" fill="white" stroke="white" stroke-width="0.5"/>
+    <circle cx="-5" cy="8" r="1.2" fill="#FFD700"/>
+    
+    <!-- Right wheel -->
+    <circle cx="5" cy="8" r="2.5" fill="white" stroke="white" stroke-width="0.5"/>
+    <circle cx="5" cy="8" r="1.2" fill="#FFD700"/>
+    
+    <!-- Couplers -->
+    <line x1="-8" y1="6" x2="-10" y2="6" stroke="#1B4F54" stroke-width="1" stroke-linecap="round"/>
+    <line x1="8" y1="6" x2="10" y2="6" stroke="#1B4F54" stroke-width="1" stroke-linecap="round"/>
+  </g>
+</svg>

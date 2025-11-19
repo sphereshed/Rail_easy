@@ -1,0 +1,98 @@
+===============================================================================
+STEP-BY-STEP GUIDE TO FIX SIGNUP AND LOGIN ERRORS
+===============================================================================
+
+ERROR YOU'RE SEEING:
+- "AuthApiError: Database error saving new user"
+- "Signup error: AuthApiError: Database error saving new user"
+
+ROOT CAUSE:
+- Your Supabase triggers are missing or broken
+- The profiles and drivers tables are not being created properly on user signup
+
+SOLUTION - FOLLOW THESE STEPS EXACTLY:
+
+===============================================================================
+STEP 1: Open Supabase SQL Editor
+===============================================================================
+1. Go to: https://app.supabase.com
+2. Select your project (tojbjsjpgkessgmgcuqw)
+3. Click "SQL Editor" in the left sidebar
+4. Click "New Query" button
+
+===============================================================================
+STEP 2: Copy and Paste the SQL Fix
+===============================================================================
+5. Open the file: supabase/SIMPLE_FIX.sql in your workspace
+6. Copy ALL the content from that file
+7. Paste it into your Supabase SQL Editor
+8. Click "Run" button (or press Ctrl+Enter / Cmd+Enter)
+9. Wait for it to complete - you should see a success message
+
+===============================================================================
+STEP 3: Verify the Fix Worked
+===============================================================================
+10. In Supabase, go to "Table Editor"
+11. You should see:
+    - profiles table (with id, full_name, role columns)
+    - drivers table (with id, full_name, etc.)
+12. Click on "Triggers" and verify you see:
+    - on_auth_user_created (for profiles)
+    - on_auth_user_created_driver (for drivers)
+
+===============================================================================
+STEP 4: Test Signup
+===============================================================================
+13. Go back to your app: http://localhost:5174
+14. Try signing up with:
+    - Full Name: John Doe
+    - Email: test123@example.com
+    - Password: password123
+    - Role: Choose "Passenger" or "Driver"
+15. Click "Sign Up"
+
+EXPECTED RESULT:
+✓ Success message: "Account created! Please check your email..."
+✓ Check your email inbox for verification email
+✓ If you got here, SIGNUP IS FIXED!
+
+===============================================================================
+STEP 5: Test Login
+===============================================================================
+16. Verify your email first (click link in email)
+17. Go to login page
+18. Enter your email and password
+19. Click "Login"
+
+EXPECTED RESULT:
+✓ Success message: "Welcome back! You have successfully logged in."
+✓ You should be logged in!
+
+===============================================================================
+IF YOU STILL GET AN ERROR:
+===============================================================================
+A. Check the exact error message
+B. Go to Supabase → Logs (under Database section)
+C. Look for error entries from the time you tried to signup
+D. Copy the exact error and share it
+
+Common issues:
+- If error says "function does not exist": Re-run the SQL fix
+- If error says "permission denied": RLS policy issue, re-run the SQL fix
+- If error says "column does not exist": Table structure issue, re-run the SQL fix
+
+===============================================================================
+FRONTEND CODE UPDATES:
+===============================================================================
+The following files have been updated for better error handling:
+✓ src/hooks/useAuth.tsx - Better signup/login error messages
+✓ src/pages/PassengerSignup.tsx - Form reset on success
+✓ src/pages/DriverSignup.tsx - Form reset on success
+
+No further action needed on frontend - already applied!
+
+===============================================================================
+YOU'RE DONE! 🎉
+===============================================================================
+If signup and login work, you have successfully fixed the errors!
+

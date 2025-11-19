@@ -1,0 +1,124 @@
+=============================================================================
+🚕 CAB BOOKING FEATURE - QUICK START GUIDE
+=============================================================================
+
+✅ FEATURE SUCCESSFULLY ADDED!
+
+Users can now book a cab along with their train ticket for convenient 
+pickup/drop service to/from railway stations.
+
+=============================================================================
+📋 WHAT YOU NEED TO DO NOW
+=============================================================================
+
+STEP 1: Apply Database Migration
+---------------------------------
+1. Go to: https://app.supabase.com/project/tojbjsjpgkessgmgcuqw
+2. Click "SQL Editor" → "New Query"
+3. Open file: supabase/migrations/20251116000001_create_cab_bookings_table.sql
+4. Copy ALL content
+5. Paste in SQL Editor and click "Run"
+
+STEP 2: Restart Your Dev Server
+---------------------------------
+Press Ctrl+C in your terminal to stop the server, then run:
+    npm run dev
+
+STEP 3: Test the Feature
+---------------------------------
+1. Go to: http://localhost:5173
+2. Search for a train
+3. Click "Book Now"
+4. Select seats (Step 1) → Continue
+5. Fill passenger details (Step 2)
+6. ✨ Check the box "Add Cab Booking to your journey"
+7. Fill in cab details:
+   - Choose "Before" or "After" train journey
+   - Enter pickup and drop addresses
+   - Select pickup time
+   - Choose passengers and luggage
+   - Select cab type (Sedan/SUV/Luxury/Hatchback)
+8. Review booking (Step 3) - See cab details included
+9. Proceed to payment
+
+=============================================================================
+💰 CAB PRICING
+=============================================================================
+Hatchback     ₹350    4 passengers
+Sedan         ₹500    4 passengers  
+SUV           ₹800    6 passengers
+Luxury Sedan  ₹1,200  4 passengers
+
+=============================================================================
+📁 FILES CREATED
+=============================================================================
+✨ NEW:
+   - src/components/booking/CabBookingForm.tsx (Cab booking UI)
+   - supabase/migrations/20251116000001_create_cab_bookings_table.sql
+   - CAB_BOOKING_FEATURE.md (Detailed docs)
+   - CAB_BOOKING_SUMMARY.html (Visual guide - opened in browser)
+
+🔄 MODIFIED:
+   - src/pages/Booking.tsx (Added cab booking integration)
+   - src/types/supabase.ts (Added cab_bookings types)
+
+=============================================================================
+🎯 KEY FEATURES
+=============================================================================
+✅ Optional checkbox to add cab booking
+✅ Before/After train journey options
+✅ Full address input with smart suggestions
+✅ Datetime picker for pickup time
+✅ Passenger count (1-6) and luggage (0-5 bags)
+✅ 4 cab types with clear pricing
+✅ Special instructions field
+✅ Full price breakdown in summary
+✅ Review page shows all cab details
+✅ Database with RLS security
+✅ TypeScript type safety
+
+=============================================================================
+🔐 SECURITY
+=============================================================================
+✅ Row Level Security (RLS) enabled
+✅ Users can only view/edit their own bookings
+✅ Drivers can view/edit assigned bookings
+✅ Proper foreign key constraints
+✅ Status validation
+
+=============================================================================
+🎨 USER EXPERIENCE
+=============================================================================
+- Clean, modern design matching existing UI
+- Responsive layout (mobile-friendly)
+- Smart defaults based on train details
+- Visual price breakdown
+- Validation for all fields
+- Helpful hints and suggestions
+- Optional feature (users can skip)
+
+=============================================================================
+❓ TROUBLESHOOTING
+=============================================================================
+If you encounter issues:
+1. Check browser console (F12) for errors
+2. Verify database migration ran successfully in Supabase
+3. Ensure dev server is running (npm run dev)
+4. Check Supabase Dashboard → Table Editor for "cab_bookings" table
+5. Verify no TypeScript errors in VS Code
+
+=============================================================================
+📚 DOCUMENTATION
+=============================================================================
+For detailed documentation, see:
+- CAB_BOOKING_FEATURE.md (Technical details)
+- CAB_BOOKING_SUMMARY.html (Visual guide)
+
+=============================================================================
+🎉 READY TO USE!
+=============================================================================
+Once you apply the database migration (Step 1), the feature is ready!
+
+Created: November 16, 2025
+Status: ✅ Complete and Ready to Deploy
+=============================================================================
