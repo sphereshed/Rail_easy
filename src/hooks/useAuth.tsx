@@ -104,6 +104,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('Attempting signup with:', { email, fullName: safeFullName, role: safeRole });
 
+      // Determine the correct redirect URL based on environment
+      const getRedirectUrl = () => {
+        // Always use window.location.origin to get the current domain
+        // This will be localhost:5173 in development and your Vercel URL in production
+        return `${window.location.origin}/auth/callback?type=confirmation`;
+      };
+
       // Use OTP-based verification instead of password-based verification
       // This avoids the password reset email issue
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -111,7 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password,
         options: {
           data: userMeta,
-          emailRedirectTo: `${window.location.origin}/auth/callback?type=confirmation`,
+          emailRedirectTo: getRedirectUrl(),
         }
       });
 
@@ -311,8 +318,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPassword = async (email: string) => {
     try {
+      // Use the current domain for redirect - works for both localhost and production
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`, // Supabase will add #access_token and type=recovery automatically
+        redirectTo: redirectUrl,
       });
       if (error) throw error;
       toast({
