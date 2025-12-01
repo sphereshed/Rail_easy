@@ -3,59 +3,271 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ExclamationTriangleIcon, CheckCircledIcon } from '@radix-ui/react-icons';
-import { useState as useLocalState } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { MapPin, DollarSign, Star, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import DriverProfileEditor from './DriverProfileEditor';
+import RideRequestPopup from './RideRequestPopup';
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}
+
+const StatCard = ({ icon, label, value }: StatCardProps) => {
+  return (
+    <Card className="bg-white border-0 shadow-md">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <p className="text-sm text-gray-600 font-medium">{label}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+          </div>
+          <div className="text-gray-400">{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const DriverDashboard = () => {
-  const { user, isEmailVerified, isDriverProfileComplete, updateDriverProfile, signOut } = useAuth();
+  const { user, isEmailVerified, signOut } = useAuth();
   const navigate = useNavigate();
-  const [isProfileComplete, setIsProfileComplete] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [profileData, setProfileData] = useState({
-    full_name: '',
-    phone_number: '',
-    license_number: '',
-    vehicle_number: '',
-    vehicle_type: '',
-    is_available: true
-  });
-  const [chatOpen, setChatOpen] = useLocalState(false);
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(false);
+  const [rideRequests, setRideRequests] = useState<any[]>([]);
+  const [currentRideRequest, setCurrentRideRequest] = useState<any>(null);
+  const [showRidePopup, setShowRidePopup] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  // Only allow access if user is a driver
   const isDriver = user?.user_metadata?.role === 'driver';
 
   useEffect(() => {
-    checkProfileStatus();
     if (!user) {
       navigate('/auth');
     } else if (!isDriver) {
       navigate('/');
+    } else {
+      loadProfile();
+      subscribeToRideRequests();
     }
   }, [user, isDriver, navigate]);
 
-  const checkProfileStatus = async () => {
-    const complete = await isDriverProfileComplete();
-    setIsProfileComplete(complete);
-  };
-
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    const { error } = await updateDriverProfile(profileData);
-    if (!error) {
-      checkProfileStatus();
+  useEffect(() => {
+    if (isAvailable) {
+      fetchPendingRideRequests();
+      // Poll for new ride requests every 3 seconds when available
+      const interval = setInterval(fetchPendingRideRequests, 3000);
+      return () => clearInterval(interval);
     }
-    
-    setIsLoading(false);
+  }, [isAvailable]);
+
+  const loadProfile = async () => {
+    if (!user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('drivers')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setProfile(data);
+        setIsAvailable(data.is_available || false);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const subscribeToRideRequests = () => {
+    if (!user?.id) return;
+
+    // Subscribe to ride requests
+    const subscription = supabase
+      .channel('ride_requests')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'ride_requests',
+          filter: `status=eq.pending`,
+        },
+        (payload) => {
+          if (isAvailable) {
+            setRideRequests(prev => [payload.new, ...prev]);
+            showNewRideNotification(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  };
+
+  const fetchPendingRideRequests = async () => {
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('ride_requests')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      if (data) {
+        setRideRequests(data);
+      }
+    } catch (error) {
+      console.error('Error fetching ride requests:', error);
+    }
+  };
+
+  const showNewRideNotification = (request: any) => {
+    toast({
+      title: "New Ride Request! 🚗",
+      description: `${request.pickup_location} → ${request.dropoff_location}`,
+    });
+  };
+
+  const toggleAvailability = async () => {
+    if (!user?.id || !profile) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const newStatus = !isAvailable;
+      const { error } = await supabase
+        .from('drivers')
+        .update({ is_available: newStatus })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setIsAvailable(newStatus);
+      setProfile({ ...profile, is_available: newStatus });
+
+      toast({
+        title: newStatus ? "You're Now Available" : "You're Now Unavailable",
+        description: newStatus 
+          ? "You will receive ride requests" 
+          : "You will not receive ride requests",
+      });
+
+      if (!newStatus) {
+        setRideRequests([]);
+        setShowRidePopup(false);
+      }
+    } catch (error) {
+      console.error('Error toggling availability:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleAcceptRide = async (rideRequest: any) => {
+    if (!user?.id) return;
+
+    try {
+      // Create a ride offer
+      const { error: offerError } = await supabase
+        .from('ride_offers')
+        .insert({
+          ride_request_id: rideRequest.id,
+          driver_id: user.id,
+          status: 'accepted',
+          estimated_arrival_time: 300, // 5 minutes
+          vehicle_details: `${profile?.vehicle_type} - ${profile?.vehicle_number}`
+        });
+
+      if (offerError) throw offerError;
+
+      // Create active ride
+      const { error: rideError } = await supabase
+        .from('active_rides')
+        .insert({
+          ride_request_id: rideRequest.id,
+          driver_id: user.id,
+          passenger_id: rideRequest.passenger_id,
+          pickup_location: rideRequest.pickup_location,
+          dropoff_location: rideRequest.dropoff_location,
+          status: 'accepted',
+          started_at: new Date().toISOString()
+        });
+
+      if (rideError) throw rideError;
+
+      // Update ride request status
+      await supabase
+        .from('ride_requests')
+        .update({ status: 'accepted' })
+        .eq('id', rideRequest.id);
+
+      toast({
+        title: "Ride Accepted! ✅",
+        description: "You've successfully accepted the ride",
+      });
+
+      setShowRidePopup(false);
+      setCurrentRideRequest(null);
+      setRideRequests(prev => prev.filter(r => r.id !== rideRequest.id));
+    } catch (error) {
+      console.error('Error accepting ride:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept ride",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectRide = async (rideRequest: any) => {
+    if (!user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('ride_offers')
+        .insert({
+          ride_request_id: rideRequest.id,
+          driver_id: user.id,
+          status: 'rejected'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Ride Rejected",
+        description: "You've rejected this ride request",
+      });
+
+      setRideRequests(prev => prev.filter(r => r.id !== rideRequest.id));
+      setShowRidePopup(false);
+      setCurrentRideRequest(null);
+    } catch (error) {
+      console.error('Error rejecting ride:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject ride",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (!user || !isDriver) {
     return null;
@@ -63,237 +275,232 @@ export const DriverDashboard = () => {
 
   if (!isEmailVerified()) {
     return (
-      <Alert>
-        <ExclamationTriangleIcon className="h-4 w-4" />
-        <AlertTitle>Email Verification Required</AlertTitle>
-        <AlertDescription>
-          Please verify your email address to access the driver dashboard. Check your inbox for the verification link.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Show email verification warning if email is not verified
-  if (!isEmailVerified()) {
-    return (
-      <div className="container mx-auto p-4 max-w-4xl">
-        <Alert variant="destructive" className="mb-4">
+      <div className="min-h-screen bg-gray-50 p-4">
+        <Alert variant="destructive">
           <ExclamationTriangleIcon className="h-4 w-4" />
           <AlertTitle>Email Verification Required</AlertTitle>
           <AlertDescription>
-            Please verify your email address to access the driver dashboard. 
-            Check your inbox for the verification link. If you don't see it, check your spam folder.
+            Please verify your email address to access the driver dashboard. Check your inbox for the verification link.
           </AlertDescription>
         </Alert>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Email Verification Required</CardTitle>
-            <CardDescription>
-              Your email address must be verified before you can:
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc pl-6 space-y-2">
-              <li>Complete your driver profile</li>
-              <li>View and accept ride requests</li>
-              <li>Manage your upcoming rides</li>
-              <li>Track your earnings</li>
-            </ul>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
-  // Only show Profile tab if not verified or not complete
-  const showTabs = isEmailVerified() && isProfileComplete;
   return (
-    <div className="container mx-auto p-4 max-w-3xl relative">
-      <div className="flex justify-end mb-4">
-        <Button variant="outline" onClick={signOut} className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-900">Logout</Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Driver Dashboard</h1>
+          <p className="text-gray-600 text-sm mt-1">Manage your rides and profile</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={signOut}
+          className="text-red-700 border-red-200 hover:bg-red-50"
+        >
+          Logout
+        </Button>
       </div>
-      <Tabs defaultValue={showTabs ? "overview" : "profile"}>
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          {showTabs && <TabsTrigger value="overview">Overview</TabsTrigger>}
-          {showTabs && <TabsTrigger value="rides">Active & Upcoming Rides</TabsTrigger>}
-          {showTabs && <TabsTrigger value="earnings">Earnings</TabsTrigger>}
-        </TabsList>
 
-        <TabsContent value="profile">
-          <Card className="shadow-xl border-2 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-3xl font-bold text-blue-900">Driver Profile</CardTitle>
-              <CardDescription className="text-lg text-blue-700">
-                Complete your profile to start accepting rides
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-3">
-                    <Label htmlFor="full_name" className="text-lg font-semibold">Full Name</Label>
-                    <Input
-                      id="full_name"
-                      className="h-14 text-xl px-5 bg-blue-50 border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
-                      value={profileData.full_name}
-                      onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="phone_number" className="text-lg font-semibold">Phone Number</Label>
-                    <Input
-                      id="phone_number"
-                      className="h-14 text-xl px-5 bg-blue-50 border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
-                      value={profileData.phone_number}
-                      onChange={(e) => setProfileData({...profileData, phone_number: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="license_number" className="text-lg font-semibold">License Number</Label>
-                    <Input
-                      id="license_number"
-                      className="h-14 text-xl px-5 bg-blue-50 border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
-                      value={profileData.license_number}
-                      onChange={(e) => setProfileData({...profileData, license_number: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="vehicle_number" className="text-lg font-semibold">Vehicle Number</Label>
-                    <Input
-                      id="vehicle_number"
-                      className="h-14 text-xl px-5 bg-blue-50 border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
-                      value={profileData.vehicle_number}
-                      onChange={(e) => setProfileData({...profileData, vehicle_number: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="vehicle_type" className="text-lg font-semibold">Vehicle Type</Label>
-                    <Input
-                      id="vehicle_type"
-                      className="h-14 text-xl px-5 bg-blue-50 border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl"
-                      value={profileData.vehicle_type}
-                      onChange={(e) => setProfileData({...profileData, vehicle_type: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div className="flex items-center space-x-3 pt-8">
-                    <Checkbox
-                      id="is_available"
-                      checked={profileData.is_available}
-                      onCheckedChange={(checked) => 
-                        setProfileData({...profileData, is_available: checked as boolean})}
-                    />
-                    <Label htmlFor="is_available" className="text-lg font-semibold">Available for Rides</Label>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full h-14 text-xl font-bold bg-blue-700 hover:bg-blue-800 rounded-xl mt-6" disabled={isLoading}>
-                  {isLoading ? "Updating..." : "Update Profile"}
-                </Button>
-              </form>
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto p-6">
+        {editMode ? (
+          <Card className="bg-white shadow-lg mb-6">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Edit Profile</h2>
+                <button
+                  onClick={() => {
+                    setEditMode(false);
+                    loadProfile();
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              <DriverProfileEditor onSuccess={() => {
+                setEditMode(false);
+                loadProfile();
+              }} />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {showTabs && (
-          <TabsContent value="overview">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Active Ride</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>No active ride</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Ride Requests</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>No pending requests</p>
-                </CardContent>
-              </Card>
+        ) : (
+          <>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <StatCard 
+                icon={<MapPin className="w-6 h-6" />}
+                label="Total Rides"
+                value="0"
+              />
+              <StatCard 
+                icon={<DollarSign className="w-6 h-6" />}
+                label="Total Earnings"
+                value="₹0"
+              />
+              <StatCard 
+                icon={<Star className="w-6 h-6" />}
+                label="Rating"
+                value="5 ⭐"
+              />
+              <StatCard 
+                icon={<Clock className="w-6 h-6" />}
+                label="Status"
+                value={isAvailable ? 'Available' : 'Unavailable'}
+              />
             </div>
-          </TabsContent>
-        )}
-        {showTabs && (
-          <TabsContent value="rides">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Rides</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>No upcoming rides scheduled</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-        {showTabs && (
-          <TabsContent value="earnings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Earnings Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold">Today</h3>
-                    <p className="text-2xl">₹0</p>
+
+            {/* Availability Toggle */}
+            <Card className="bg-white shadow-lg mb-6">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Availability</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {isAvailable 
+                        ? "You're currently available to receive ride requests" 
+                        : "You're currently not available. Toggle to start receiving requests"}
+                    </p>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold">This Week</h3>
-                    <p className="text-2xl">₹0</p>
-                  </div>
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-semibold">This Month</h3>
-                    <p className="text-2xl">₹0</p>
-                  </div>
+                  <Button
+                    onClick={toggleAvailability}
+                    disabled={updatingStatus}
+                    className={`px-8 py-3 rounded-lg font-semibold transition-all ${
+                      isAvailable
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                    }`}
+                  >
+                    {updatingStatus ? 'Updating...' : (isAvailable ? 'Available' : 'Unavailable')}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        )}
-      </Tabs>
 
-      {/* AI Chatbot Floating Button and Popup */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          className="bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-full shadow-2xl p-4 hover:scale-110 transition-all flex items-center justify-center"
-          onClick={() => setChatOpen((v) => !v)}
-          aria-label="Open AI Chatbot"
-        >
-          <svg width="32" height="32" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/><path d="M8.5 10.5a3.5 3.5 0 1 1 7 0v1.25c0 .414.336.75.75.75s.75-.336.75-.75V10.5a5 5 0 1 0-10 0v1.25c0 .414.336.75.75.75s.75-.336.75-.75V10.5Zm3.5 7a1.25 1.25 0 0 0 1.25-1.25h-2.5A1.25 1.25 0 0 0 12 17.5Z" fill="#2563eb"/></svg>
-        </button>
-        {chatOpen && (
-          <div className="fixed bottom-24 right-6 w-80 max-w-full bg-white rounded-2xl shadow-2xl border border-blue-200 flex flex-col overflow-hidden animate-fade-in z-50">
-            <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-4 py-3 flex items-center justify-between">
-              <span className="font-bold text-lg">RailEase AI Assistant</span>
-              <button className="ml-2 text-white hover:text-blue-200" onClick={() => setChatOpen(false)}>&times;</button>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto" style={{ minHeight: '200px', maxHeight: '300px' }}>
-              <div className="text-gray-700 text-base mb-2">Hi! I am your AI assistant. How can I help you today?</div>
-              <div className="text-xs text-gray-400 mb-2">(Future: This chatbot will answer questions using your database and booking info.)</div>
-            </div>
-            <form className="flex border-t border-blue-100">
-              <input
-                type="text"
-                className="flex-1 px-3 py-2 text-base rounded-bl-2xl focus:outline-none"
-                placeholder="Type your message..."
-                disabled
-              />
-              <button type="submit" className="px-4 py-2 text-blue-700 font-bold" disabled>
-                Send
-              </button>
-            </form>
-          </div>
+            {/* Ride Requests Display */}
+            {isAvailable && rideRequests.length > 0 && (
+              <Card className="bg-white shadow-lg mb-6">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Available Ride Requests ({rideRequests.length})
+                  </h3>
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {rideRequests.map((request) => (
+                      <div
+                        key={request.id}
+                        className="p-4 border-2 border-blue-200 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setCurrentRideRequest(request);
+                          setShowRidePopup(true);
+                        }}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">📍 {request.pickup_location}</p>
+                            <p className="text-sm text-gray-600 mt-1">→ {request.dropoff_location}</p>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Passengers: {request.passenger_count} | {request.vehicle_preference || 'Any'}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentRideRequest(request);
+                              setShowRidePopup(true);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Driver Profile Section */}
+            <Card className="bg-white shadow-lg mb-6">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Driver Profile</h2>
+                    <p className="text-gray-600 text-sm mt-1">Manage your vehicle and license information</p>
+                  </div>
+                  <Button 
+                    onClick={() => setEditMode(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Edit Profile
+                  </Button>
+                </div>
+
+                {!loading && profile ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex items-start space-x-4">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm text-gray-600">Vehicle Type</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {profile?.vehicle_type || 'Not set'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-4">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm text-gray-600">Vehicle Number</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {profile?.vehicle_number || 'Not set'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-4">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm text-gray-600">License Number</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {profile?.license_number || 'Not set'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">Loading profile...</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Rides Section */}
+            <Card className="bg-white shadow-lg">
+              <CardContent className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Rides</h2>
+                <p className="text-gray-600">Your ride history and upcoming bookings</p>
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
+
+      {/* Ride Request Popup */}
+      {showRidePopup && currentRideRequest && (
+        <RideRequestPopup
+          rideRequest={currentRideRequest}
+          onAccept={() => handleAcceptRide(currentRideRequest)}
+          onReject={() => handleRejectRide(currentRideRequest)}
+          onClose={() => {
+            setShowRidePopup(false);
+            setCurrentRideRequest(null);
+          }}
+        />
+      )}
     </div>
   );
 };

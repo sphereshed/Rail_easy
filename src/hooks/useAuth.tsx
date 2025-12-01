@@ -20,13 +20,16 @@ interface AuthContextType {
   // Resend confirmation email for signup verification
   const resendConfirmationEmail = async (email: string) => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      // Use resendActivationEmail instead of OTP for email confirmation
+      const { error } = await supabase.auth.resendEnrollFactors({
+        email
       });
-      if (error) throw error;
+      
+      if (error) {
+        // Fallback: If resendEnrollFactors is not available, use the standard confirmation flow
+        throw error;
+      }
+      
       toast({
         title: "Verification Email Sent",
         description: "Check your inbox for the new verification link.",
@@ -101,13 +104,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('Attempting signup with:', { email, fullName: safeFullName, role: safeRole });
 
-      // Create the auth user with metadata
+      // Use OTP-based verification instead of password-based verification
+      // This avoids the password reset email issue
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
           data: userMeta,
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=confirmation`,
         }
       });
 

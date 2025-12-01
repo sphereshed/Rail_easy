@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DriverProfile {
   id: string;
@@ -13,7 +17,11 @@ interface DriverProfile {
   is_available: boolean;
 }
 
-export const DriverProfileEditor = () => {
+interface DriverProfileEditorProps {
+  onSuccess?: () => void;
+}
+
+export const DriverProfileEditor = ({ onSuccess }: DriverProfileEditorProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<DriverProfile>({
@@ -76,6 +84,10 @@ export const DriverProfileEditor = () => {
       title: "Success",
       description: "Profile updated successfully!"
     });
+
+    if (onSuccess) {
+      onSuccess();
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,86 +99,99 @@ export const DriverProfileEditor = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Full Name</label>
-        <input
-          type="text"
-          name="full_name"
-          value={profile.full_name}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-          required
-        />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <Label htmlFor="full_name" className="text-sm font-semibold text-gray-700">Full Name</Label>
+          <Input
+            type="text"
+            id="full_name"
+            name="full_name"
+            value={profile.full_name}
+            onChange={handleChange}
+            className="mt-2 h-12 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="phone_number" className="text-sm font-semibold text-gray-700">Phone Number</Label>
+          <Input
+            type="tel"
+            id="phone_number"
+            name="phone_number"
+            value={profile.phone_number}
+            onChange={handleChange}
+            className="mt-2 h-12 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="license_number" className="text-sm font-semibold text-gray-700">License Number</Label>
+          <Input
+            type="text"
+            id="license_number"
+            name="license_number"
+            value={profile.license_number}
+            onChange={handleChange}
+            className="mt-2 h-12 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="vehicle_number" className="text-sm font-semibold text-gray-700">Vehicle Number</Label>
+          <Input
+            type="text"
+            id="vehicle_number"
+            name="vehicle_number"
+            value={profile.vehicle_number}
+            onChange={handleChange}
+            className="mt-2 h-12 px-4 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="vehicle_type" className="text-sm font-semibold text-gray-700">Vehicle Type</Label>
+          <select
+            id="vehicle_type"
+            name="vehicle_type"
+            value={profile.vehicle_type}
+            onChange={(e) => setProfile(prev => ({ ...prev, vehicle_type: e.target.value }))}
+            className="mt-2 h-12 px-4 border border-gray-300 rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500 w-full"
+            required
+          >
+            <option value="">Select vehicle type</option>
+            <option value="Bike/Scooter">Bike/Scooter</option>
+            <option value="Auto/Rickshaw">Auto/Rickshaw</option>
+            <option value="Sedan">Sedan</option>
+            <option value="SUV">SUV</option>
+          </select>
+        </div>
+
+        <div className="flex items-center pt-6">
+          <Checkbox
+            id="is_available"
+            name="is_available"
+            checked={profile.is_available}
+            onCheckedChange={(checked) => 
+              setProfile(prev => ({...prev, is_available: checked as boolean}))
+            }
+          />
+          <Label htmlFor="is_available" className="ml-3 text-sm font-medium text-gray-700">Available for Rides</Label>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-        <input
-          type="tel"
-          name="phone_number"
-          value={profile.phone_number}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">License Number</label>
-        <input
-          type="text"
-          name="license_number"
-          value={profile.license_number}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Vehicle Number</label>
-        <input
-          type="text"
-          name="vehicle_number"
-          value={profile.vehicle_number}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Vehicle Type</label>
-        <input
-          type="text"
-          name="vehicle_type"
-          value={profile.vehicle_type}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-          required
-        />
-      </div>
-
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          name="is_available"
-          checked={profile.is_available}
-          onChange={handleChange}
-          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-        />
-        <label className="ml-2 block text-sm text-gray-900">Available for Rides</label>
-      </div>
-
-      <div>
-        <button
+      <div className="flex gap-3 pt-4">
+        <Button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
         >
-          {loading ? 'Updating...' : 'Update Profile'}
-        </button>
+          {loading ? 'Updating...' : 'Save Changes'}
+        </Button>
       </div>
     </form>
   );
